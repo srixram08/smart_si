@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "author": "Mikey & Antigravity",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -97.7, "left": 124.6, "attrs": { "label": "ACS712 Current" } },
+    { "type": "wokwi-potentiometer", "id": "pot2", "top": -97.7, "left": 240.2, "attrs": { "label": "ZMPT101B Voltage" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pot1:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "pot1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "pot1:SIG", "esp:34", "green", [ "v0" ] ],
+    [ "pot2:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "pot2:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "pot2:SIG", "esp:35", "blue", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

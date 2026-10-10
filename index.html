@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartEnergy™ | IoT Energy Monitoring & Telemetry Console</title>
+  <meta name="description" content="Production-grade IoT Smart Energy Monitoring System with ESP32, Wokwi simulation, real-time MQTT telemetry, deterministic cost engine and 3D visualizer.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f0ff'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>">
+
+  <!-- Google Fonts: Roboto & Roboto Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- CDN Dependencies -->
+  <!-- Three.js for 3D Visualizers -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Chart.js for Live Trend Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- MQTT.js for WebSocket Telemetry -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body data-theme="light">
+
+  <!-- ========================================================================
+       TOP UNIFIED NAVIGATION BAR
+       ======================================================================== -->
+  <nav class="navbar" id="main-navbar">
+    <!-- Brand Logo -->
+    <a href="#landing" class="brand-logo" id="nav-brand-logo" data-navigate="landing">
+      <div class="brand-icon-box">
+        <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <div>
+        <span>Smart<span style="color:var(--accent-blue);">Energy</span>™</span>
+        <span class="badge badge-cyan" id="nav-iot-badge" style="font-size:0.65rem; margin-left:6px; padding:2px 8px;">ESP32 IoT</span>
+      </div>
+    </a>
+
+    <!-- Live Status Pill (shown on dashboard) -->
+    <div class="status-pill font-mono" id="nav-live-status-pill" style="display:none; font-size:0.78rem;">
+      <span class="pulse-dot online" id="nav-mqtt-dot"></span>
+      <span id="nav-mqtt-text">WOKWI LIVE</span>
+    </div>
+
+    <!-- PUBLIC Nav Links (Shown ONLY on Landing / Login page) -->
+    <ul class="nav-links" id="nav-public-links">
+      <li><a href="#overview" class="nav-link" data-navigate="landing">Overview</a></li>
+      <li><a href="#architecture" class="nav-link" data-navigate="landing">Architecture</a></li>
+      <li><a href="#hardware" class="nav-link" data-navigate="landing">Hardware</a></li>
+      <li><a href="#wokwi" class="nav-link open-wokwi-modal">Wokwi Sim</a></li>
+      <li><a href="#dashboard" class="nav-link" data-navigate="dashboard" style="color:var(--accent-blue); font-weight:700;">Live Dashboard</a></li>
+    </ul>
+
+    <!-- DASHBOARD Segmented Tabs (Shown ONLY on Dashboard page) -->
+    <div class="dash-nav-tabs" id="nav-dashboard-tabs" style="display:none;">
+      <button class="dash-tab-btn active" data-dash-tab="overview">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        Overview
+      </button>
+      <button class="dash-tab-btn" data-dash-tab="analytics">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        Analytics
+      </button>
+      <button class="dash-tab-btn" data-dash-tab="tariff">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Tariff & Budget
+      </button>
+      <button class="dash-tab-btn" data-dash-tab="simulator">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        Simulator
+      </button>
+      <button class="dash-tab-btn" data-dash-tab="logs">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Logs & Alerts
+      </button>
+    </div>
+
+    <!-- Right Controls: Notification, Sound, Theme, User Profile & Logout -->
+    <div class="nav-actions">
+      <!-- Notification Bell with Counter & Dropdown -->
+      <div class="nav-notif-wrapper">
+        <button class="btn btn-outline btn-icon" id="notif-toggle-btn" title="View Notifications">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span class="notif-badge" id="nav-notif-badge">0</span>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="notif-dropdown-menu" id="notif-dropdown">
+          <div class="notif-dropdown-header">
+            <div>
+              <h4 style="font-size:0.88rem; font-weight:700;">Notifications</h4>
+              <span style="font-size:0.72rem; color:var(--text-muted);" id="notif-count-text">0 active alerts</span>
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-clear-dropdown-notifs" style="padding:2px 8px; font-size:0.72rem;">Clear</button>
+          </div>
+          <div class="notif-dropdown-list" id="notif-dropdown-list">
+            <div class="notif-empty-state">No active alarm notifications</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Alert Toggle Button -->
+      <button class="btn btn-outline btn-icon active" id="audio-toggle-btn" title="Toggle Sound Alerts">
+        <svg id="audio-icon-on" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+        </svg>
+        <svg id="audio-icon-off" style="display:none;" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+        </svg>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button class="btn btn-outline btn-icon" id="theme-toggle-btn" title="Toggle Light/Dark Theme">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+      </button>
+
+      <!-- PUBLIC ACTIONS (Shown ONLY when NOT on dashboard) -->
+      <div id="nav-public-actions" style="display:flex; gap:8px;">
+        <button class="btn btn-outline btn-sm" data-navigate="login">Sign In</button>
+        <button class="btn btn-primary btn-sm" data-navigate="dashboard">Launch Console</button>
+      </div>
+
+      <!-- DASHBOARD ACTIONS (Shown ONLY when on dashboard!) -->
+      <div id="nav-dashboard-actions" style="display:none; align-items:center; gap:10px;">
+        <div class="user-profile-pill">
+          <div class="user-avatar-circle">VV</div>
+          <div class="user-avatar-info">
+            <span class="user-name">Vishnu V.</span>
+            <span class="user-role">Energy Admin</span>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm btn-logout" id="btn-dashboard-logout" title="Log Out & Return to Home">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Log Out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================================
+       VIEW 1: LANDING PAGE
+       ======================================================================== -->
+  <section id="landing-view" class="view-section active">
+    <!-- Hero Section -->
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-pill-badge">
+          <span class="pulse-dot online"></span>
+          <span>Live ESP32 + Wokwi Integration Active</span>
+        </div>
+
+        <h1 class="hero-title">
+          Deterministic <span class="gradient-text">Energy Telemetry</span> & Smart Metering
+        </h1>
+
+        <p class="hero-description">
+          Households and businesses shouldn't wait until the monthly bill arrives to detect energy waste. Continuously stream AC voltage and current from calibrated ESP32 ADC sensors, calculate true active power, and forecast electricity costs in real time.
+        </p>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary" data-navigate="dashboard">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Open Live Dashboard
+          </button>
+          <button class="btn btn-emerald open-wokwi-modal">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+            Wokwi Project Sim
+          </button>
+          <button class="btn btn-outline" id="btn-demo-login">
+            Quick Guest Demo
+          </button>
+        </div>
+
+        <div class="hero-features-chips">
+          <div class="chip-item">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>2-Second HiveMQ MQTT Pub/Sub</span>
+          </div>
+          <div class="chip-item">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Dynamic ₹/kWh Tariff Recalculation</span>
+          </div>
+          <div class="chip-item">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span>Over-power & Surge Audio Alerts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Holographic Power Mesh Visualizer -->
+      <div class="hero-visual-wrapper">
+        <canvas id="hero-3d-canvas"></canvas>
+
+        <div class="hero-overlay-hud">
+          <div class="hud-pill">
+            <span class="pulse-dot online" style="margin-right:6px;"></span>
+            <span>HOLOGRAPHIC ENERGY CORE</span>
+          </div>
+          <div class="hud-pill">
+            <span>ESP32 ADC CH34/35</span>
+          </div>
+        </div>
+
+        <div class="hero-overlay-bottom">
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Live Active Load</span>
+            <span class="hero-metric-val" id="hero-ticker-watts" style="color:var(--accent-emerald);">564 W</span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">RMS Voltage</span>
+            <span class="hero-metric-val" id="hero-ticker-volts" style="color:var(--accent-cyan);">230.4 V</span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Current Draw</span>
+            <span class="hero-metric-val" id="hero-ticker-amps" style="color:#a855f7;">2.45 A</span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="hero-metric-label">Accumulated Energy</span>
+            <span class="hero-metric-val" id="hero-ticker-kwh" style="color:#f59e0b;">0.0421 kWh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Grid: Problem vs Solution -->
+    <div class="section-container" id="overview">
+      <div class="section-header">
+        <span class="badge badge-cyan">Intelligent Telemetry</span>
+        <h2 class="section-title">Solving the Blind Monthly Bill Shock</h2>
+        <p class="section-subtitle">
+          Electricity bills are historically retrospective. Our IoT architecture turns passive consumption into active, predictive cost control.
+        </p>
+      </div>
+
+      <div class="grid-3col">
+        <div class="feature-card glass-panel">
+          <div class="feature-icon-box" style="background:rgba(255, 0, 85, 0.1); color:var(--accent-rose);">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          </div>
+          <h3>The Blind Utility Bill</h3>
+          <p>Traditional utility meters lock data away. Homeowners only see the damage 30 days later, unable to pinpoint which faulty air conditioner, geyser, or appliance drove up the tariff slab.</p>
+        </div>
+
+        <div class="feature-card glass-panel">
+          <div class="feature-icon-box" style="background:rgba(0, 240, 255, 0.1); color:var(--accent-cyan);">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Continuous High-Speed ADC</h3>
+          <p>The ESP32 samples ZMPT101B and ACS712 sensors with a 20-sample oversampling filter every 2 seconds, computing instantaneous active power (P = V × I) and accumulating true kilowatt-hours.</p>
+        </div>
+
+        <div class="feature-card glass-panel">
+          <div class="feature-icon-box" style="background:rgba(0, 255, 136, 0.1); color:var(--accent-emerald);">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          </div>
+          <h3>Deterministic Cost Projections</h3>
+          <p>Instantaneous tariff calculations convert kilowatt-hours to Rupees (₹) immediately. The built-in forecasting engine projects today's total and monthly run rates to prevent budget blowouts before they happen.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hardware Showcase Section -->
+    <div class="section-container" id="hardware">
+      <div class="section-header">
+        <span class="badge badge-emerald">Sensor Integration</span>
+        <h2 class="section-title">ESP32 Dual-Sensor Hardware Suite</h2>
+        <p class="section-subtitle">
+          Real hardware uses an ACS712 Hall-effect module and ZMPT101B precision transformer. The Wokwi simulator models them seamlessly using dual potentiometers on ADC1 channels.
+        </p>
+      </div>
+
+      <div class="hardware-showcase">
+        <div class="hardware-image-frame">
+          <img src="assets/images/iot_hardware.jpg" alt="ESP32 IoT Sensor Hardware Setup">
+          <div class="hardware-hotspot-pin" style="top:25%; left:20%;">ESP32 DevKit v4</div>
+          <div class="hardware-hotspot-pin" style="top:32%; left:55%;">ZMPT101B (GPIO 35)</div>
+          <div class="hardware-hotspot-pin" style="top:52%; left:75%;">ACS712 (GPIO 34)</div>
+        </div>
+
+        <div class="specs-list">
+          <div class="spec-item">
+            <div class="spec-icon">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+            </div>
+            <div>
+              <h4 style="font-size:1.05rem; margin-bottom:4px;">ZMPT101B AC Voltage Sensor</h4>
+              <p style="font-size:0.88rem; color:var(--text-secondary);">Measures AC mains voltage up to 300V RMS using an onboard high-precision micro-transformer and LM358 op-amp. Wired to ESP32 ADC1 (GPIO 35).</p>
+            </div>
+          </div>
+
+          <div class="spec-item">
+            <div class="spec-icon">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div>
+              <h4 style="font-size:1.05rem; margin-bottom:4px;">ACS712 Current Sensor (5A Model)</h4>
+              <p style="font-size:0.88rem; color:var(--text-secondary);">Hall-effect based linear current IC with 185 mV/A sensitivity. Provides 2.1 kV RMS galvanic isolation. Connected to ADC1 (GPIO 34).</p>
+            </div>
+          </div>
+
+          <div class="spec-item">
+            <div class="spec-icon">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+            </div>
+            <div>
+              <h4 style="font-size:1.05rem; margin-bottom:4px;">HiveMQ Cloud MQTT Broker</h4>
+              <p style="font-size:0.88rem; color:var(--text-secondary);">Enterprise MQTT messaging broker on <code class="font-mono">broker.hivemq.com</code>. Streams 2-second telemetry packets via TCP (1883) and WebSockets (8884).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Smart Building Flow Section -->
+    <div class="section-container" id="architecture">
+      <div class="section-header">
+        <span class="badge badge-purple">Grid Distribution</span>
+        <h2 class="section-title">Whole-Building Energy Flow Visualization</h2>
+        <p class="section-subtitle">
+          From utility grid drop and solar inverter to high-draw heating and EV charging loads.
+        </p>
+      </div>
+
+      <div class="hardware-image-frame" style="max-width:1100px; margin:0 auto;">
+        <img src="assets/images/energy_flow_diagram.jpg" alt="Smart Building Energy Flow Diagram">
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="section-container" style="text-align:center;">
+      <div class="glass-panel" style="padding:60px 40px; background:radial-gradient(circle at center, rgba(0,240,255,0.08) 0%, rgba(15,23,42,0.9) 70%);">
+        <h2 style="font-size:2.4rem; margin-bottom:16px;">Ready to Monitor Your Energy Consumption?</h2>
+        <p style="color:var(--text-secondary); max-width:600px; margin:0 auto 30px; font-size:1.05rem;">
+          Open the full production console, adjust virtual sensor potentiometers, test tariff scenarios, and stream live ESP32 telemetry.
+        </p>
+        <button class="btn btn-primary" style="padding:14px 36px; font-size:1.05rem;" data-navigate="dashboard">
+          Enter SmartEnergy Console →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       VIEW 2: LOGIN / AUTHENTICATION PAGE
+       ======================================================================== -->
+  <section id="login-view" class="view-section">
+    <div class="auth-container">
+      <div class="auth-card glass-panel">
+        <div class="auth-header">
+          <div class="brand-icon-box" style="margin:0 auto 16px;">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h2>SmartEnergy™ Access</h2>
+          <p style="font-size:0.88rem; color:var(--text-secondary); margin-top:6px;">Sign in to monitor live telemetry & manage tariff limits</p>
+        </div>
+
+        <div class="auth-tabs">
+          <div class="auth-tab active">Household Resident</div>
+          <div class="auth-tab">Facility Engineer</div>
+        </div>
+
+        <form id="auth-form">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email or Account ID</label>
+            <input type="text" id="login-email" class="form-input" value="resident@smartenergy.io" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Access Key / Password</label>
+            <input type="password" id="login-password" class="form-input" value="••••••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">Sign In to Dashboard</button>
+        </form>
+
+        <div class="quick-demo-login-box">
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">Reviewing or Testing? Skip login with one click:</p>
+          <button class="btn btn-emerald" id="btn-demo-login" style="width:100%;">
+            ⚡ Instant Demo Access (No Password Needed)
+          </button>
+        </div>
+
+        <div style="text-align:center; margin-top:20px;">
+          <a href="#landing" data-navigate="landing" style="color:var(--text-secondary); font-size:0.85rem; text-decoration:none;">
+            ← Back to Homepage
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       VIEW 3: MAIN PRODUCTION-GRADE DASHBOARD
+       ======================================================================== -->
+  <section id="dashboard-view" class="view-section">
+    <div class="dashboard-wrapper">
+
+      <!-- ====================================================================
+           TAB PAGE 1: OVERVIEW (Active by default)
+           ==================================================================== -->
+      <div class="dash-page-tab active" id="tab-overview">
+
+        <!-- Dedicated Live Wokwi Hardware Telemetry Banner -->
+        <div class="live-wokwi-stream-banner" id="live-wokwi-stream-banner">
+          <div class="stream-banner-left">
+            <div class="live-pulse-ring">
+              <span class="pulse-dot online" id="wokwi-indicator-dot"></span>
+            </div>
+            <div>
+              <div class="stream-banner-title" id="wokwi-feed-status-title">
+                LIVE WOKWI ESP32 HARDWARE STREAM
+              </div>
+              <div class="stream-banner-sub" id="wokwi-feed-status-sub">
+                Subscribed to HiveMQ topic: <code>mikey/energy/data</code> • Packets received: <span id="wokwi-packet-count" class="font-mono">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="stream-banner-actions">
+            <span class="feed-badge live" id="wokwi-mode-badge">LIVE FEED ACTIVE</span>
+            <a href="https://wokwi.com/projects/477019972049778689" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+              Open Wokwi Project ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- Quick Telemetry Action & Status Toolbar -->
+        <div class="dash-sub-toolbar">
+          <div class="dash-sub-left">
+            <div class="status-pill" id="mqtt-status-pill">
+              <span class="pulse-dot online" id="mqtt-status-dot"></span>
+              <span id="mqtt-status-text">CONNECTING...</span>
+            </div>
+            <div class="status-pill font-mono" style="font-size:0.78rem;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Updated: <span id="last-telemetry-time">just now</span></span>
+            </div>
+            <div class="status-pill font-mono" style="cursor:pointer;" id="btn-open-mqtt-config" title="Click to customize MQTT Broker or Topic">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+              <span id="active-topic-label">mikey/energy/data</span>
+            </div>
+          </div>
+
+          <div class="dash-sub-right">
+            <button class="btn btn-outline btn-sm" id="btn-pause-stream">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              Pause
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-reset-kwh" title="Reset Energy (kWh) Counter">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Reset kWh
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-export-csv">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Export CSV
+            </button>
+            <button class="btn btn-emerald btn-sm open-wokwi-modal">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              Wokwi Sim
+            </button>
+          </div>
+        </div>
+
+        <!-- Real-time Dynamic Alert Banner -->
+        <div id="global-alert-banner" class="alert-banner">
+          <div class="alert-banner-content">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span id="alert-banner-message">CRITICAL: Active load threshold exceeded!</span>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-clear-alerts" style="background:rgba(0,0,0,0.3);">
+            Acknowledge
+          </button>
+        </div>
+
+        <!-- SECTION 1: 5 LIVE METRICS CARDS (TOP ROW) -->
+        <div class="metrics-row">
+          <!-- 1. Voltage Card -->
+          <div class="metric-card glass-panel status-voltage" id="card-voltage">
+            <div class="metric-card-header">
+              <span class="metric-card-title">Grid Voltage</span>
+              <div class="metric-card-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+            </div>
+            <div class="metric-value-box">
+              <span class="metric-big-num" id="live-voltage-val">230.0</span>
+              <span class="metric-unit">V</span>
+            </div>
+            <div class="metric-card-footer">
+              <span class="badge badge-cyan" id="badge-voltage-status">NORMAL GRID</span>
+              <span class="font-mono" id="voltage-deviation">0.0% from 230V</span>
+            </div>
+          </div>
+
+          <!-- 2. Current Card -->
+          <div class="metric-card glass-panel status-safe" id="card-current">
+            <div class="metric-card-header">
+              <span class="metric-card-title">Load Current</span>
+              <div class="metric-card-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l3-8z"/></svg>
+              </div>
+            </div>
+            <div class="metric-value-box">
+              <span class="metric-big-num" id="live-current-val">2.45</span>
+              <span class="metric-unit">A</span>
+            </div>
+            <div class="metric-card-footer">
+              <span class="badge badge-emerald" id="badge-current-status">OPTIMAL</span>
+              <div style="width:70px; height:6px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+                <div id="current-capacity-bar" style="width:49%; height:100%; background:var(--accent-emerald);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Active Power Card -->
+          <div class="metric-card glass-panel status-safe" id="card-power">
+            <div class="metric-card-header">
+              <span class="metric-card-title">Active Power</span>
+              <div class="metric-card-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+              </div>
+            </div>
+            <div class="metric-value-box">
+              <span class="metric-big-num" id="live-power-val">563.5</span>
+              <span class="metric-unit">W</span>
+            </div>
+            <div class="metric-card-footer">
+              <span class="badge badge-emerald" id="badge-power-status">SAFE LOAD</span>
+              <span class="font-mono" id="power-kw-val">0.564 kW</span>
+            </div>
+          </div>
+
+          <!-- 4. Energy Consumed Card -->
+          <div class="metric-card glass-panel status-energy" id="card-energy">
+            <div class="metric-card-header">
+              <span class="metric-card-title">Energy Consumed</span>
+              <div class="metric-card-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>
+              </div>
+            </div>
+            <div class="metric-value-box">
+              <span class="metric-big-num" id="live-energy-val" style="font-size:1.75rem;">0.04218</span>
+              <span class="metric-unit">kWh</span>
+            </div>
+            <div class="metric-card-footer">
+              <span class="badge badge-purple">ACCUMULATING</span>
+              <span class="font-mono">P × dt / 3.6e9</span>
+            </div>
+          </div>
+
+          <!-- 5. Estimated Cost Card -->
+          <div class="metric-card glass-panel status-cost" id="card-cost">
+            <div class="metric-card-header">
+              <span class="metric-card-title">Estimated Cost</span>
+              <div class="metric-card-icon">
+                <span style="font-weight:900; font-size:1.2rem;">₹</span>
+              </div>
+            </div>
+            <div class="metric-value-box">
+              <span class="metric-big-num" id="live-cost-val" style="color:#f59e0b;">₹ 0.337</span>
+            </div>
+            <div class="metric-card-footer">
+              <span class="badge badge-amber" id="tariff-readout">@ ₹ 8.00/kWh</span>
+              <span class="font-mono">Instant Calc</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: 3D POWER REACTOR & GAUGES ROW -->
+        <div class="reactor-gauges-row">
+          <!-- Col 1: 3D Interactive Live Power Core Reactor -->
+          <div class="reactor-box glass-panel">
+            <div class="reactor-box-header">
+              <div>
+                <span class="badge badge-cyan">Interactive WebGL</span>
+                <h3 style="font-size:1.1rem; margin-top:4px;">Dynamic Power Core</h3>
+              </div>
+              <span class="font-mono" style="font-size:0.75rem; color:var(--text-muted);">Rotation Speed ∝ Watts</span>
+            </div>
+
+            <canvas id="reactor-3d-canvas"></canvas>
+
+            <div class="reactor-hud-overlay">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">Core Plasma Field</span>
+              <span class="font-mono badge badge-emerald" id="core-state-badge">NOMINAL FLUX</span>
+            </div>
+          </div>
+
+          <!-- Col 2: Radial Power Gauge (0 - 5000 W) -->
+          <div class="gauge-card glass-panel">
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="font-size:1.05rem;">Power Load Gauge</h3>
+              <span class="badge badge-emerald" id="power-gauge-status">SAFE LOAD</span>
+            </div>
+
+            <!-- SVG Radial Power Gauge -->
+            <div class="gauge-svg-container">
+              <svg class="gauge-svg" viewBox="0 0 200 130">
+                <!-- Safe Arc (0-1500W: 0 to 81 deg) -->
+                <path d="M 25 110 A 75 75 0 0 1 65 37" fill="none" stroke="#00ff88" stroke-width="12" stroke-linecap="round"/>
+                <!-- Warning Arc (1500-3000W: 81 to 162 deg) -->
+                <path d="M 70 34 A 75 75 0 0 1 130 34" fill="none" stroke="#ffaa00" stroke-width="12"/>
+                <!-- Danger Arc (3000-5000W: 162 to 243 deg) -->
+                <path d="M 135 37 A 75 75 0 0 1 175 110" fill="none" stroke="#ff0055" stroke-width="12" stroke-linecap="round"/>
+
+                <!-- Center Pivot and Needle -->
+                <circle cx="100" cy="110" r="8" fill="#00f0ff"/>
+                <g id="power-gauge-needle" style="transform-origin: 100px 110px; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+                  <line x1="100" y1="110" x2="100" y2="35" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+                  <circle cx="100" cy="110" r="4" fill="#070a12"/>
+                </g>
+
+                <!-- Scale Labels -->
+                <text x="22" y="125" fill="#64748b" font-size="9" font-family="JetBrains Mono">0W</text>
+                <text x="60" y="24" fill="#00ff88" font-size="9" font-family="JetBrains Mono">1.5k</text>
+                <text x="125" y="24" fill="#ffaa00" font-size="9" font-family="JetBrains Mono">3.0k</text>
+                <text x="165" y="125" fill="#ff0055" font-size="9" font-family="JetBrains Mono">5.0k</text>
+              </svg>
+
+              <div class="gauge-center-text">
+                <span class="gauge-center-val" id="power-gauge-val">564</span>
+                <span class="gauge-center-label">Active Watts</span>
+              </div>
+            </div>
+
+            <div class="gauge-zones-legend">
+              <span><span class="legend-dot" style="background:#00ff88;"></span>Safe (0-1.5kW)</span>
+              <span><span class="legend-dot" style="background:#ffaa00;"></span>Warn (1.5-3kW)</span>
+              <span><span class="legend-dot" style="background:#ff0055;"></span>Danger (3kW+)</span>
+            </div>
+          </div>
+
+          <!-- Col 3: Current Capacity Gauge (ACS712 Rated Limit) -->
+          <div class="gauge-card glass-panel">
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="font-size:1.05rem;">Current Capacity</h3>
+              <span class="badge badge-cyan" id="current-gauge-status">NORMAL</span>
+            </div>
+
+            <div class="gauge-svg-container">
+              <svg class="gauge-svg" viewBox="0 0 200 130">
+                <!-- Background Arc -->
+                <path d="M 30 110 A 70 70 0 0 1 170 110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"/>
+                <!-- Active Range Arc -->
+                <path d="M 30 110 A 70 70 0 0 1 145 45" fill="none" stroke="#a855f7" stroke-width="12" stroke-linecap="round"/>
+                <path d="M 148 43 A 70 70 0 0 1 170 110" fill="none" stroke="#ff0055" stroke-width="12" stroke-linecap="round"/>
+
+                <!-- Needle -->
+                <circle cx="100" cy="110" r="8" fill="#a855f7"/>
+                <g id="current-gauge-needle" style="transform-origin: 100px 110px; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+                  <line x1="100" y1="110" x2="100" y2="40" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="100" cy="110" r="4" fill="#070a12"/>
+                </g>
+
+                <text x="25" y="125" fill="#64748b" font-size="9" font-family="JetBrains Mono">0A</text>
+                <text x="95" y="28" fill="#a855f7" font-size="9" font-family="JetBrains Mono">2.5A</text>
+                <text x="165" y="125" fill="#ff0055" font-size="9" font-family="JetBrains Mono">5A Max</text>
+              </svg>
+
+              <div class="gauge-center-text">
+                <span class="gauge-center-val" id="current-gauge-val" style="color:#a855f7;">2.45 A</span>
+                <span class="gauge-center-label" id="current-gauge-percent">49% Rated</span>
+              </div>
+            </div>
+
+            <div class="gauge-zones-legend">
+              <span><span class="legend-dot" style="background:#a855f7;"></span>0 - 4.5A Safe Swarm</span>
+              <span><span class="legend-dot" style="background:#ff0055;"></span>4.5A+ Sensor Limit</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Switcher to Other Sections -->
+        <div class="glass-panel" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h4 style="font-size:0.95rem; font-weight:700;">Explore Dedicated Modules</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Switch between high-resolution charts, tariff forecasting, hardware potentiometer simulator, and telemetry logs.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="document.querySelector('.dash-tab-btn[data-dash-tab=\'analytics\']').click()">📈 Open Analytics</button>
+            <button class="btn btn-outline btn-sm" onclick="document.querySelector('.dash-tab-btn[data-dash-tab=\'tariff\']').click()">💰 Tariff & Budget</button>
+            <button class="btn btn-outline btn-sm" onclick="document.querySelector('.dash-tab-btn[data-dash-tab=\'simulator\']').click()">🎛️ Simulator</button>
+            <button class="btn btn-outline btn-sm" onclick="document.querySelector('.dash-tab-btn[data-dash-tab=\'logs\']').click()">📋 Logs & Alerts</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====================================================================
+           TAB PAGE 2: ANALYTICS (Charts & Data History Table)
+           ==================================================================== -->
+      <div class="dash-page-tab" id="tab-analytics">
+        <div class="chart-card glass-panel" style="width:100%;">
+          <div class="chart-card-header">
+            <div>
+              <h3 style="font-size:1.15rem;">Live Power Telemetry Trend</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Real-time rolling stream via HiveMQ WebSocket</p>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" id="btn-toggle-chart-type">Show V & I Dual Chart</button>
+              <div class="chart-timeframe-btns">
+                <button class="timeframe-btn active" data-mins="1">1 Min</button>
+                <button class="timeframe-btn" data-mins="3">3 Mins</button>
+                <button class="timeframe-btn" data-mins="5">5 Mins</button>
+              </div>
+              <button class="btn btn-outline btn-sm" id="btn-clear-chart">Clear</button>
+            </div>
+          </div>
+
+          <!-- Chart.js Canvases -->
+          <div class="chart-canvas-container" id="wrap-power-chart">
+            <canvas id="power-trend-chart"></canvas>
+          </div>
+
+          <div class="chart-canvas-container" id="wrap-multi-chart" style="display:none;">
+            <canvas id="multi-trend-chart"></canvas>
+          </div>
+
+          <div class="chart-stats-summary">
+            <div>
+              <span style="color:var(--text-muted); font-size:0.75rem;">MIN POWER: </span>
+              <span class="font-mono" id="stat-min-power" style="color:var(--accent-cyan); font-weight:700;">-- W</span>
+            </div>
+            <div>
+              <span style="color:var(--text-muted); font-size:0.75rem;">AVG POWER: </span>
+              <span class="font-mono" id="stat-avg-power" style="color:var(--accent-emerald); font-weight:700;">-- W</span>
+            </div>
+            <div>
+              <span style="color:var(--text-muted); font-size:0.75rem;">PEAK SURGE: </span>
+              <span class="font-mono" id="stat-max-power" style="color:var(--accent-rose); font-weight:700;">-- W</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Telemetry Data Table -->
+        <div class="data-table-panel glass-panel" style="width:100%;">
+          <div class="table-header-row">
+            <div>
+              <h3 style="font-size:1.15rem;">Live Telemetry Stream Log</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Most recent 20 readings with Voltage, Current, Power, Energy & Cost</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-export-csv-table">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Download CSV Data
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="telemetry-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Voltage (V)</th>
+                  <th>Current (A)</th>
+                  <th>Active Power (W)</th>
+                  <th>Energy (kWh)</th>
+                  <th>Estimated Cost (₹)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-table-body">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           TAB PAGE 3: TARIFF & BUDGET
+           ==================================================================== -->
+      <div class="dash-page-tab" id="tab-tariff">
+        <div class="tariff-panel glass-panel" style="width:100%;">
+          <div>
+            <span class="badge badge-amber">Dynamic Tariff Engine</span>
+            <h3 style="font-size:1.15rem; margin-top:4px;">Deterministic Cost Projections</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Recalculates instant burn rate & future bills according to your utility rate</p>
+          </div>
+
+          <div class="tariff-slider-wrap">
+            <div class="slider-label-row">
+              <span style="font-size:0.85rem; font-weight:600;">Electricity Tariff (₹/kWh)</span>
+              <span class="font-mono" style="color:var(--accent-amber); font-weight:700;">
+                <input type="number" id="tariff-number-input" value="8.0" min="1" max="25" step="0.5" style="width:65px; background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-primary); border-radius:4px; padding:2px 6px; font-family:var(--font-mono);"> ₹/kWh
+              </span>
+            </div>
+            <input type="range" id="tariff-slider" class="slider-input" min="1" max="25" step="0.5" value="8.0">
+          </div>
+
+          <div class="cost-projections-grid">
+            <div class="projection-card">
+              <span class="projection-label">Cost / Hour</span>
+              <span class="projection-val" id="proj-cost-hour">₹ 4.51</span>
+            </div>
+            <div class="projection-card">
+              <span class="projection-label">Projected / Day</span>
+              <span class="projection-val" id="proj-cost-day">₹ 108.2</span>
+            </div>
+            <div class="projection-card">
+              <span class="projection-label">Projected / Month</span>
+              <span class="projection-val" id="proj-cost-month">₹ 3,246</span>
+            </div>
+          </div>
+
+          <!-- Usage Budget Tracker -->
+          <div class="budget-progress-container">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.85rem; font-weight:600;">Monthly Budget Limit</span>
+              <span class="font-mono" style="font-size:0.85rem;">
+                Limit: ₹ <input type="number" id="budget-limit-input" value="100" min="10" max="5000" step="10" style="width:65px; background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-primary); border-radius:4px; padding:2px 6px; font-family:var(--font-mono);">
+              </span>
+            </div>
+            <div class="budget-bar-track">
+              <div id="budget-bar-fill" class="budget-bar-fill"></div>
+            </div>
+            <div class="budget-stats-row font-mono">
+              <span id="budget-spent-text">₹ 0.34 of ₹ 100 spent</span>
+              <span id="budget-pct-text" style="color:var(--accent-emerald); font-weight:700;">0.3%</span>
+              <span id="budget-remaining-text">₹ 99.66 remaining</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tariff Math & Explainability Cards -->
+        <div class="tariff-info-grid">
+          <div class="glass-panel" style="padding:18px;">
+            <span class="badge badge-cyan">Formula 01</span>
+            <h4 style="margin-top:8px; font-size:0.95rem;">Active Real Power (Watts)</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:6px; line-height:1.5;">
+              <code>P = V_rms × I_rms × cos(θ)</code><br>
+              Calculated deterministically on the ESP32 microcontroller through continuous synchronous sampling of voltage and current analog channels.
+            </p>
+          </div>
+          <div class="glass-panel" style="padding:18px;">
+            <span class="badge badge-purple">Formula 02</span>
+            <h4 style="margin-top:8px; font-size:0.95rem;">Accumulated Energy (kWh)</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:6px; line-height:1.5;">
+              <code>E += (P × Δt) / 3,600,000</code><br>
+              Riemann sum integration every 2-second publishing window. Preserves energy state across sessions.
+            </p>
+          </div>
+          <div class="glass-panel" style="padding:18px;">
+            <span class="badge badge-emerald">Formula 03</span>
+            <h4 style="margin-top:8px; font-size:0.95rem;">Deterministic Billing Engine</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:6px; line-height:1.5;">
+              <code>Cost = E(kWh) × Tariff Rate (₹/kWh)</code><br>
+              Transparent computation with zero hidden fees. Updates live whenever the tariff slider changes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           TAB PAGE 4: SIMULATOR (Potentiometer Controls & Wokwi Info)
+           ==================================================================== -->
+      <div class="dash-page-tab" id="tab-simulator">
+        <div class="hardware-sim-panel glass-panel" style="width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <span class="badge badge-cyan">Virtual Hardware Stand-In</span>
+              <h3 style="font-size:1.15rem; margin-top:4px;">ESP32 Potentiometer Controls</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Simulate ACS712 & ZMPT101B potentiometer adjustments locally</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-toggle-simulator">
+              Running Virtual Sim
+            </button>
+          </div>
+
+          <div class="sim-knobs-grid">
+            <!-- Pot 1: Current Slider -->
+            <div class="sim-knob-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.82rem; font-weight:600;">Pot 1: ACS712 Current (GPIO 34)</span>
+                <span class="font-mono" id="sim-val-amps" style="color:#a855f7; font-weight:700;">2.45 A</span>
+              </div>
+              <input type="range" id="sim-pot-amps" class="slider-input" min="0" max="5" step="0.05" value="2.45">
+              <span style="font-size:0.72rem; color:var(--text-muted);">Full Swing: 0.0A to 5.0A (185mV/A sensitivity)</span>
+            </div>
+
+            <!-- Pot 2: Voltage Slider -->
+            <div class="sim-knob-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.82rem; font-weight:600;">Pot 2: ZMPT101B Voltage (GPIO 35)</span>
+                <span class="font-mono" id="sim-val-volts" style="color:var(--accent-cyan); font-weight:700;">230 V</span>
+              </div>
+              <input type="range" id="sim-pot-volts" class="slider-input" min="0" max="300" step="1" value="230">
+              <span style="font-size:0.72rem; color:var(--text-muted);">Full Swing: 0V to 300V RMS AC mains</span>
+            </div>
+          </div>
+
+          <!-- Quick Scenario Presets -->
+          <div>
+            <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Quick Load Presets:</span>
+            <div class="sim-preset-chips" style="margin-top:8px;">
+              <div class="sim-preset-chip" data-sim-preset data-v="230" data-a="0.35">Standby Idle (80W)</div>
+              <div class="sim-preset-chip" data-sim-preset data-v="230" data-a="2.45">Normal Load (560W)</div>
+              <div class="sim-preset-chip" data-sim-preset data-v="228" data-a="4.40">Heavy HVAC Surge (1000W)</div>
+              <div class="sim-preset-chip" data-sim-preset data-v="265" data-a="2.10">Overvoltage Surge (265V)</div>
+              <div class="sim-preset-chip" data-sim-preset data-v="180" data-a="3.00">Brownout Sag (180V)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wokwi Direct Cloud Simulator Card -->
+        <div class="glass-panel" style="padding:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <span class="badge badge-emerald">Wokwi Cloud Simulation</span>
+            <h4 style="font-size:1.05rem; margin-top:6px;">Run True ESP32 Microcontroller Firmware in Real-Time</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:4px; max-width:640px;">
+              Launch our cloud simulation project in Wokwi. Turn the physical potentiometers in the simulator on GPIO 34 and GPIO 35; values publish instantly via HiveMQ MQTT to this dashboard!
+            </p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-emerald open-wokwi-modal">View Firmware Code</button>
+            <a href="https://wokwi.com/projects/477019972049778689" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Launch Wokwi Sim ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           TAB PAGE 5: LOGS & ALERTS
+           ==================================================================== -->
+      <div class="dash-page-tab" id="tab-logs">
+        <div class="alerts-log-panel glass-panel" style="width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <span class="badge badge-rose">Proactive Protection</span>
+              <h3 style="font-size:1.15rem; margin-top:4px;">Alert Log & Threshold Rules</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:0.75rem; color:var(--text-muted);">Over-power Alert:</span>
+              <input type="number" id="threshold-power-input" value="2000" min="500" max="5000" step="100" style="width:75px; background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-primary); border-radius:4px; padding:2px 6px; font-family:var(--font-mono);">
+              <span style="font-size:0.75rem;">W</span>
+              <button class="btn btn-outline btn-sm" id="btn-clear-alerts" style="margin-left:8px;">Clear Log</button>
+            </div>
+          </div>
+
+          <div class="alerts-log-list" id="alerts-log-list">
+            <div class="alert-item">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="badge badge-emerald">SYSTEM READY</span>
+                <span>ESP32 telemetry engine active. Monitoring 2-second telemetry packets.</span>
+              </div>
+              <span class="font-mono" style="color:var(--text-muted); font-size:0.75rem;">Now</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry System Diagnostics Card -->
+        <div class="glass-panel" style="padding:22px;">
+          <h4 style="font-size:1rem; font-weight:700; margin-bottom:12px;">IoT Telemetry Diagnostics & Health</h4>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+            <div style="padding:12px; background:var(--bg-primary); border:1px solid var(--border-subtle); border-radius:8px;">
+              <span style="font-size:0.72rem; color:var(--text-muted);">MQTT BROKER</span>
+              <div class="font-mono" style="font-size:0.85rem; font-weight:600; margin-top:2px;">broker.hivemq.com:8884</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-primary); border:1px solid var(--border-subtle); border-radius:8px;">
+              <span style="font-size:0.72rem; color:var(--text-muted);">SUBSCRIBED TOPIC</span>
+              <div class="font-mono" style="font-size:0.85rem; font-weight:600; margin-top:2px;">mikey/energy/data</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-primary); border:1px solid var(--border-subtle); border-radius:8px;">
+              <span style="font-size:0.72rem; color:var(--text-muted);">TELEMETRY CADENCE</span>
+              <div class="font-mono" style="font-size:0.85rem; font-weight:600; margin-top:2px;">2000 ms (0.5 Hz)</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-primary); border:1px solid var(--border-subtle); border-radius:8px;">
+              <span style="font-size:0.72rem; color:var(--text-muted);">ADC RESOLUTION</span>
+              <div class="font-mono" style="font-size:0.85rem; font-weight:600; margin-top:2px;">12-Bit (0-4095)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD FOOTER -->
+      <div class="dashboard-footer glass-panel">
+        <div>
+          <span>Smart Energy Monitoring System • Production-Grade IoT Ops Console</span>
+          <div style="margin-top:4px; color:var(--text-muted); font-size:0.78rem;">
+            Simulated with Wokwi: dual potentiometers stand in for ACS712 (GPIO34) & ZMPT101B (GPIO35).
+          </div>
+        </div>
+
+        <div class="footer-tags">
+          <span class="badge badge-cyan font-mono">Broker: broker.hivemq.com:8884</span>
+          <span class="badge badge-purple font-mono">Topic: mikey/energy/data</span>
+          <span class="badge badge-emerald font-mono">Rate: 2000 ms</span>
+          <a href="https://wokwi.com/projects/477019972049778689" target="_blank" rel="noopener noreferrer" class="badge badge-amber" style="text-decoration:none;">
+            Wokwi Project #477019972049778689 ↗
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       MODAL 1: WOKWI LIVE SIMULATION & ESP32 FIRMWARE MODAL
+       ======================================================================== -->
+  <div id="wokwi-modal" class="modal-overlay">
+    <div class="modal-window glass-panel">
+      <div class="modal-header">
+        <div>
+          <span class="badge badge-emerald">Wokwi Cloud Simulation</span>
+          <h2 style="font-size:1.4rem; margin-top:4px;">ESP32 Energy Monitor in Wokwi</h2>
+        </div>
+        <button class="modal-close-btn close-modal">&times;</button>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <p style="font-size:0.92rem; color:var(--text-secondary); line-height:1.6;">
+          Your Wokwi simulation at <a href="https://wokwi.com/projects/477019972049778689" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); font-weight:700;">https://wokwi.com/projects/477019972049778689</a> runs the ESP32 firmware below. It publishes directly to HiveMQ broker over Wi-Fi, and this dashboard connects via WebSockets!
+        </p>
+      </div>
+
+      <!-- Action link to open Wokwi -->
+      <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <a href="https://wokwi.com/projects/477019972049778689" target="_blank" rel="noopener noreferrer" class="btn btn-emerald">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Open Wokwi Simulation Tab ↗
+        </a>
+        <button class="btn btn-outline" id="btn-copy-firmware">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+          Copy Arduino C++ Code
+        </button>
+      </div>
+
+      <!-- Circuit Wiring Diagram Table -->
+      <div style="margin-bottom:20px;">
+        <h4 style="font-size:0.95rem; margin-bottom:10px;">Circuit Wiring & Stand-Ins:</h4>
+        <div class="table-responsive">
+          <table class="telemetry-table" style="font-size:0.8rem;">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Stand-In in Wokwi</th>
+                <th>ESP32 Pin</th>
+                <th>Signal Function</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ACS712 Current Sensor</td>
+                <td>Potentiometer 1 (pot1)</td>
+                <td>GPIO 34 (ADC1_CH6)</td>
+                <td>Analog 0.0 - 5.0A (185 mV/A)</td>
+              </tr>
+              <tr>
+                <td>ZMPT101B Voltage Sensor</td>
+                <td>Potentiometer 2 (pot2)</td>
+                <td>GPIO 35 (ADC1_CH7)</td>
+                <td>Analog 0.0 - 300.0V RMS</td>
+              </tr>
+              <tr>
+                <td>Power Supply</td>
+                <td>ESP32 3V3 & GND</td>
+                <td>3V3 / GND</td>
+                <td>Sensor VCC & Common Ground</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Firmware Code Viewer -->
+      <div>
+        <h4 style="font-size:0.95rem; margin-bottom:8px;">ESP32 Firmware (sketch.ino):</h4>
+        <div class="code-snippet-box" id="firmware-code-block">#include &lt;WiFi.h&gt;
+#include &lt;PubSubClient.h&gt;
+
+const char* WIFI_SSID   = "Wokwi-GUEST";
+const char* MQTT_SERVER = "broker.hivemq.com";
+const int   MQTT_PORT   = 1883;
+const char* TOPIC       = "mikey/energy/data";
+
+const int   PIN_CURRENT = 34;   // ACS712 Stand-in
+const int   PIN_VOLTAGE = 35;   // ZMPT101B Stand-in
+const float ACS_SENS    = 0.185;  // 185 mV/A sensitivity
+const float MAX_AMPS    = 5.0;
+const float MAX_VOLTS   = 300.0;
+const float TARIFF      = 8.0;    // Default Rs/kWh
+
+WiFiClient wifi;
+PubSubClient mqtt(wifi);
+float kwh = 0;
+unsigned long lastPublish = 0, lastCalc = 0;
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, "", 6);
+  while (WiFi.status() != WL_CONNECTED) delay(300);
+  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
+  lastCalc = millis();
+}
+
+void loop() {
+  if (!mqtt.connected()) {
+    String id = "esp32-energy-" + String(random(0xffff), HEX);
+    mqtt.connect(id.c_str());
+  }
+  mqtt.loop();
+
+  float vAdc = analogRead(PIN_CURRENT) * 3.3 / 4095.0;
+  float amps = fabs((vAdc - 1.65) / (ACS_SENS * (3.3 / 5.0)));
+  if (amps > MAX_AMPS) amps = MAX_AMPS;
+  if (amps < 0.05) amps = 0;
+
+  float volts = analogRead(PIN_VOLTAGE) * MAX_VOLTS / 4095.0;
+  float watts = volts * amps;
+
+  unsigned long now = millis();
+  kwh += watts * (now - lastCalc) / 3.6e9;
+  lastCalc = now;
+
+  if (now - lastPublish >= 2000) {
+    lastPublish = now;
+    char msg[200];
+    snprintf(msg, sizeof(msg),
+      "{\"v\":%.1f,\"i\":%.2f,\"p\":%.1f,\"kwh\":%.5f,\"cost\":%.3f}",
+      volts, amps, watts, kwh, kwh * TARIFF);
+    mqtt.publish(TOPIC, msg);
+  }
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 2: MQTT BROKER & TOPIC CONFIGURATION MODAL
+       ======================================================================== -->
+  <div id="mqtt-config-modal" class="modal-overlay">
+    <div class="modal-window glass-panel" style="max-width:550px;">
+      <div class="modal-header">
+        <div>
+          <span class="badge badge-cyan">Network Connection</span>
+          <h2 style="font-size:1.3rem; margin-top:4px;">MQTT Broker Settings</h2>
+        </div>
+        <button class="modal-close-btn close-modal">&times;</button>
+      </div>
+
+      <form id="mqtt-config-form">
+        <div class="form-group">
+          <label class="form-label" for="cfg-broker-url">WebSocket Broker URL</label>
+          <input type="text" id="cfg-broker-url" class="form-input font-mono" value="wss://broker.hivemq.com:8884/mqtt" required>
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+            Default: <code class="font-mono">wss://broker.hivemq.com:8884/mqtt</code> (HiveMQ WebSockets Port 8884)
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cfg-topic">Telemetry Topic</label>
+          <input type="text" id="cfg-topic" class="form-input font-mono" value="mikey/energy/data" required>
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+            Default topic configured in Wokwi sketch: <code class="font-mono">mikey/energy/data</code>
+          </span>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button type="button" class="btn btn-outline close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Reconnect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/three-scene.js"></script>
+  <script src="js/mqtt-client.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
